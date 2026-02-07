@@ -1,6 +1,11 @@
 import { generateText, Output } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 import { z } from "zod"
+
+const ollama = createOpenAI({
+  baseURL: "http://localhost:11434/v1",
+  apiKey: "ollama",
+});
 
 export const maxDuration = 60
 
@@ -95,7 +100,7 @@ Be encouraging but precise. Speak in a friendly, Gen Z-accessible tone.`,
 
   try {
     const result = await generateText({
-      model: openai("gpt-4o-mini"),
+      model: ollama("llama3"),
       system: systemPrompt,
       prompt: `Please evaluate the following ${type} submission and provide detailed feedback:\n\n${content}`,
       output: Output.object({ schema: feedbackSchema }),
@@ -117,6 +122,6 @@ Be encouraging but precise. Speak in a friendly, Gen Z-accessible tone.`,
     return Response.json(
       { error: err instanceof Error ? err.message : "Internal server error" },
       { status: 500 }
-    )
+      )
   }
 }
