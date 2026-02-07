@@ -1,11 +1,6 @@
-import { generateText, Output } from "ai"
-import { createOpenAI } from "@ai-sdk/openai"
+import { generateObject } from "ai"
+import { google } from "@ai-sdk/google"
 import { z } from "zod"
-
-const ollama = createOpenAI({
-  baseURL: "http://localhost:11434/v1",
-  apiKey: "ollama",
-});
 
 export const maxDuration = 60
 
@@ -20,17 +15,26 @@ const practiceSchema = z.object({
 })
 
 export async function POST(req: Request) {
-  const { topic, difficulty, type } = await req.json()
+  try {
+    const { topic, difficulty, type } = await req.json()
 
-  const result = await generateText({
-    model: ollama("llama3"),
-    system: `You are a creative and encouraging tutor who generates practice problems. 
+    const { object } = await generateObject({
+      // Using the stable flash model to avoid the "Not Found" error
+      model: google("gemini-3-flash-preview"),
+      system: `You are a creative and encouraging tutor who generates practice problems.
 Your tone is friendly and Gen Z-accessible. Make problems interesting and relevant to real life when possible.
 Generate a ${difficulty} level ${type} practice problem about: ${topic}.`,
-    prompt: `Create a ${difficulty} difficulty ${type} practice exercise about "${topic}". 
+      prompt: `Create a ${difficulty} difficulty ${type} practice exercise about "${topic}".
 Make it engaging and educational. Include progressive hints that guide without giving away the answer.`,
-    output: Output.object({ schema: practiceSchema }),
-  })
+      schema: practiceSchema,
+    })
 
-  return Response.json(result.output)
+    return Response.json(object)
+  } catch (err) {
+    console.error("[Practice API Error]:", err)
+    return Response.json(
+      { error: err instanceof Error ? err.message : "Failed to generate practice problem" },
+      { status: 500 }
+    )
+  }
 }
